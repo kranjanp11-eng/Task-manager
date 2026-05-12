@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaskFlow — Get Things Done</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c28;
+      --border: #2a2a3d;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --accent3: #43e97b;
+      --text: #e8e8f0;
+      --muted: #666685;
+      --low: #43e97b;
+      --medium: #f7c948;
+      --high: #ff6584;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* BACKGROUND ORBS */
+    .bg-orbs {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+    }
+    .orb {
+      position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.12;
+      animation: drift 12s ease-in-out infinite alternate;
+    }
+    .orb1 { width: 500px; height: 500px; background: var(--accent); top: -150px; left: -100px; animation-delay: 0s; }
+    .orb2 { width: 400px; height: 400px; background: var(--accent2); bottom: -100px; right: -80px; animation-delay: 3s; }
+    .orb3 { width: 300px; height: 300px; background: var(--accent3); top: 40%; left: 40%; animation-delay: 6s; }
+
+    @keyframes drift {
+      from { transform: translate(0,0) scale(1); }
+      to   { transform: translate(30px, 40px) scale(1.1); }
+    }
+
+    /* LAYOUT */
+    .app {
+      position: relative; z-index: 1;
+      max-width: 780px; margin: 0 auto; padding: 40px 20px 80px;
+    }
+
+    /* HEADER */
+    header {
+      text-align: center; margin-bottom: 48px;
+      animation: slideDown 0.7s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2.2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #6c63ff, #ff6584, #43e97b);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .tagline { color: var(--muted); font-size: 0.95rem; margin-top: 6px; letter-spacing: 0.5px; }
+
+    /* STATS ROW */
+    .stats-row {
+      display: flex; gap: 12px; margin-bottom: 32px; justify-content: center;
+      animation: fadeUp 0.7s 0.2s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    .stat-card {
+      flex: 1; max-width: 180px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 16px; text-align: center;
+      transition: transform 0.3s, border-color 0.3s;
+    }
+    .stat-card:hover { transform: translateY(-3px); border-color: var(--accent); }
+    .stat-num {
+      font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .stat-label { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+
+    /* ADD FORM */
+    .add-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 24px; margin-bottom: 28px;
+      animation: fadeUp 0.7s 0.35s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    .add-card h2 {
+      font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700;
+      color: var(--muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 16px;
+    }
+    .form-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .input-wrap { position: relative; flex: 1; min-width: 180px; }
+    input, textarea, select {
+      width: 100%; padding: 12px 16px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 12px; color: var(--text); font-family: 'DM Sans', sans-serif;
+      font-size: 0.92rem; outline: none;
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(108,99,255,0.15);
+    }
+    textarea { resize: vertical; min-height: 80px; margin-top: 10px; }
+    select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23666685' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+
+    .btn {
+      padding: 12px 24px; border: none; border-radius: 12px;
+      font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700;
+      cursor: pointer; transition: all 0.25s; letter-spacing: 0.5px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      color: white; box-shadow: 0 4px 20px rgba(108,99,255,0.3);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(108,99,255,0.4); }
+    .btn-primary:active { transform: translateY(0); }
+
+    /* FILTER BAR */
+    .filter-bar {
+      display: flex; gap: 8px; align-items: center; margin-bottom: 20px; flex-wrap: wrap;
+      animation: fadeUp 0.7s 0.5s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    .filter-btn {
+      padding: 8px 18px; border-radius: 99px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem; cursor: pointer; transition: all 0.22s;
+    }
+    .filter-btn:hover { border-color: var(--accent); color: var(--text); }
+    .filter-btn.active {
+      background: var(--accent); border-color: var(--accent);
+      color: white; box-shadow: 0 4px 14px rgba(108,99,255,0.35);
+    }
+    .spacer { flex: 1; }
+    .search-wrap { position: relative; }
+    .search-wrap input { padding-left: 36px; width: 200px; }
+    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+
+    /* TASK LIST */
+    .task-list { display: flex; flex-direction: column; gap: 12px; }
+
+    .task-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 18px 20px;
+      display: flex; align-items: flex-start; gap: 14px;
+      cursor: pointer;
+      animation: taskIn 0.4s cubic-bezier(0.16,1,0.3,1) both;
+      transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+      position: relative; overflow: hidden;
+    }
+    .task-card::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+      border-radius: 3px 0 0 3px;
+      transition: width 0.3s;
+    }
+    .task-card.priority-LOW::before  { background: var(--low); }
+    .task-card.priority-MEDIUM::before { background: var(--medium); }
+    .task-card.priority-HIGH::before { background: var(--high); }
+
+    .task-card:hover {
+      transform: translateX(4px); border-color: var(--border);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+    .task-card.completed { opacity: 0.55; }
+    .task-card.completed .task-title { text-decoration: line-through; }
+
+    @keyframes taskIn {
+      from { opacity: 0; transform: translateX(-20px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes taskOut {
+      from { opacity: 1; transform: translateX(0) scaleY(1); max-height: 200px; margin-bottom: 12px; }
+      to   { opacity: 0; transform: translateX(20px) scaleY(0); max-height: 0; margin-bottom: 0; padding: 0; }
+    }
+    .task-card.removing { animation: taskOut 0.35s cubic-bezier(0.16,1,0.3,1) forwards; }
+
+    /* CHECKBOX */
+    .check-btn {
+      width: 22px; height: 22px; min-width: 22px;
+      border-radius: 50%; border: 2px solid var(--border);
+      background: transparent; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.25s; margin-top: 1px;
+    }
+    .check-btn:hover { border-color: var(--accent3); }
+    .check-btn.done { background: var(--accent3); border-color: var(--accent3); }
+    .check-btn.done svg { display: block; }
+    .check-btn svg { display: none; }
+
+    .task-body { flex: 1; min-width: 0; }
+    .task-title {
+      font-family: 'Syne', sans-serif; font-size: 0.97rem; font-weight: 600;
+      color: var(--text); margin-bottom: 4px; word-break: break-word;
+    }
+    .task-desc { font-size: 0.83rem; color: var(--muted); line-height: 1.5; margin-bottom: 8px; }
+    .task-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .badge {
+      font-size: 0.7rem; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
+      padding: 3px 10px; border-radius: 99px;
+    }
+    .badge-LOW    { background: rgba(67,233,123,0.15); color: var(--low); }
+    .badge-MEDIUM { background: rgba(247,201,72,0.15); color: var(--medium); }
+    .badge-HIGH   { background: rgba(255,101,132,0.15); color: var(--high); }
+    .task-date { font-size: 0.75rem; color: var(--muted); }
+
+    /* ACTIONS */
+    .task-actions { display: flex; gap: 8px; align-items: flex-start; }
+    .icon-btn {
+      width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border);
+      background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      color: var(--muted); transition: all 0.22s;
+    }
+    .icon-btn:hover.edit { border-color: var(--accent); color: var(--accent); background: rgba(108,99,255,0.1); }
+    .icon-btn:hover.del  { border-color: var(--accent2); color: var(--accent2); background: rgba(255,101,132,0.1); }
+
+    /* EMPTY STATE */
+    .empty-state {
+      text-align: center; padding: 60px 20px;
+      animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    .empty-icon { font-size: 3.5rem; margin-bottom: 16px; animation: float 3s ease-in-out infinite; }
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    .empty-state h3 { font-family: 'Syne', sans-serif; font-size: 1.2rem; color: var(--muted); }
+
+    /* MODAL */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 24px; padding: 32px; width: 95%; max-width: 480px;
+      animation: modalIn 0.4s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.88) translateY(20px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .modal h2 {
+      font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 800;
+      margin-bottom: 20px; color: var(--text);
+    }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+    .btn-ghost {
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+    }
+    .btn-ghost:hover { border-color: var(--text); color: var(--text); }
+
+    /* TOAST */
+    .toast-container { position: fixed; bottom: 30px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 10px; }
+    .toast {
+      padding: 12px 20px; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 12px; font-size: 0.88rem; color: var(--text);
+      animation: toastIn 0.4s cubic-bezier(0.16,1,0.3,1) both;
+      max-width: 280px; display: flex; align-items: center; gap: 10px;
+    }
+    .toast.success { border-color: var(--accent3); }
+    .toast.error   { border-color: var(--accent2); }
+    @keyframes toastIn  { from { opacity:0; transform: translateX(40px); } to { opacity:1; transform: translateX(0); } }
+    @keyframes toastOut { from { opacity:1; transform: translateX(0); }    to { opacity:0; transform: translateX(40px); } }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* LOADING SKELETON */
+    .skeleton {
+      background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+    @media (max-width: 500px) {
+      .stats-row { gap: 8px; }
+      .stat-card { padding: 12px; }
+      .form-row { flex-direction: column; }
+      .search-wrap input { width: 140px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-orbs">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+
+<div class="app">
+  <!-- HEADER -->
+  <header>
+    <div class="logo">TaskFlow</div>
+    <p class="tagline">Beautiful productivity. Zero friction.</p>
+  </header>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-num" id="stat-total">0</div>
+      <div class="stat-label">Total Tasks</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-done">0</div>
+      <div class="stat-label">Completed</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-pending">0</div>
+      <div class="stat-label">Pending</div>
+    </div>
+  </div>
+
+  <!-- ADD TASK FORM -->
+  <div class="add-card">
+    <h2>New Task</h2>
+    <div class="form-row">
+      <div class="input-wrap" style="flex:2">
+        <input type="text" id="task-title" placeholder="What needs to be done?" />
+      </div>
+      <select id="task-priority">
+        <option value="LOW">🟢 Low</option>
+        <option value="MEDIUM" selected>🟡 Medium</option>
+        <option value="HIGH">🔴 High</option>
+      </select>
+    </div>
+    <textarea id="task-desc" placeholder="Add a description (optional)…"></textarea>
+    <div style="margin-top:12px; display:flex; justify-content:flex-end;">
+      <button class="btn btn-primary" onclick="createTask()">+ Add Task</button>
+    </div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+    <button class="filter-btn" onclick="setFilter('pending', this)">Pending</button>
+    <button class="filter-btn" onclick="setFilter('completed', this)">Done</button>
+    <div class="spacer"></div>
+    <div class="search-wrap">
+      <span class="search-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </span>
+      <input type="text" id="search-input" placeholder="Search…" oninput="renderTasks()" />
+    </div>
+  </div>
+
+  <!-- TASK LIST -->
+  <div class="task-list" id="task-list"></div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <h2>Edit Task</h2>
+    <input type="hidden" id="edit-id" />
+    <input type="text" id="edit-title" placeholder="Task title" />
+    <select id="edit-priority" style="margin-top:10px;">
+      <option value="LOW">🟢 Low</option>
+      <option value="MEDIUM">🟡 Medium</option>
+      <option value="HIGH">🔴 High</option>
+    </select>
+    <textarea id="edit-desc" placeholder="Description…" style="margin-top:10px;"></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+  const API = 'http://localhost:8080/api/tasks';
+  let tasks = [];
+  let currentFilter = 'all';
+
+  // ─── API CALLS ─────────────────────────────────────────────
+  async function fetchTasks() {
+    try {
+      const res = await fetch(API);
+      tasks = await res.json();
+      renderTasks();
+      updateStats();
+    } catch (e) {
+      showToast('⚠️ Cannot connect to backend. Running in demo mode.', 'error');
+      loadDemoTasks();
+    }
+  }
+
+  async function createTask() {
+    const title = document.getElementById('task-title').value.trim();
+    if (!title) { shakeInput('task-title'); return; }
+
+    const task = {
+      title,
+      description: document.getElementById('task-desc').value.trim(),
+      priority: document.getElementById('task-priority').value,
+    };
+
+    try {
+      const res = await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(task)
+      });
+      const created = await res.json();
+      tasks.unshift(created);
+      document.getElementById('task-title').value = '';
+      document.getElementById('task-desc').value = '';
+      renderTasks(); updateStats();
+      showToast('✅ Task created!', 'success');
+    } catch (e) {
+      // demo mode
+      task.id = Date.now(); task.completed = false;
+      task.createdAt = new Date().toISOString();
+      tasks.unshift(task);
+      document.getElementById('task-title').value = '';
+      document.getElementById('task-desc').value = '';
+      renderTasks(); updateStats();
+      showToast('✅ Task created! (demo)', 'success');
+    }
+  }
+
+  async function toggleTask(id) {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    try {
+      const res = await fetch(`${API}/${id}/toggle`, { method: 'PATCH' });
+      const updated = await res.json();
+      Object.assign(task, updated);
+    } catch (e) {
+      task.completed = !task.completed;
+    }
+    renderTasks(); updateStats();
+  }
+
+  async function deleteTask(id) {
+    const card = document.querySelector(`[data-id="${id}"]`);
+    if (card) {
+      card.classList.add('removing');
+      await delay(350);
+    }
+    try {
+      await fetch(`${API}/${id}`, { method: 'DELETE' });
+    } catch (_) {}
+    tasks = tasks.filter(t => t.id !== id);
+    renderTasks(); updateStats();
+    showToast('🗑️ Task deleted', 'error');
+  }
+
+  async function saveEdit() {
+    const id = +document.getElementById('edit-id').value;
+    const task = tasks.find(t => t.id === id);
+    const updates = {
+      ...task,
+      title: document.getElementById('edit-title').value.trim(),
+      description: document.getElementById('edit-desc').value.trim(),
+      priority: document.getElementById('edit-priority').value,
+    };
+    try {
+      const res = await fetch(`${API}/${id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      Object.assign(task, await res.json());
+    } catch (_) {
+      Object.assign(task, updates);
+    }
+    closeModal(); renderTasks();
+    showToast('✏️ Task updated!', 'success');
+  }
+
+  // ─── RENDER ────────────────────────────────────────────────
+  function renderTasks() {
+    const query = document.getElementById('search-input').value.toLowerCase();
+    let visible = tasks.filter(t => {
+      if (currentFilter === 'completed' && !t.completed) return false;
+      if (currentFilter === 'pending'   &&  t.completed) return false;
+      if (query && !t.title.toLowerCase().includes(query) &&
+          !(t.description||'').toLowerCase().includes(query)) return false;
+      return true;
+    });
+
+    const list = document.getElementById('task-list');
+    if (!visible.length) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">✨</div>
+          <h3>${query ? 'No matching tasks' : 'No tasks here yet'}</h3>
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = visible.map((t, i) => `
+      <div class="task-card priority-${t.priority} ${t.completed ? 'completed' : ''}"
+           data-id="${t.id}" style="animation-delay:${i * 0.04}s">
+        <button class="check-btn ${t.completed ? 'done' : ''}" onclick="toggleTask(${t.id}); event.stopPropagation()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </button>
+        <div class="task-body">
+          <div class="task-title">${escHtml(t.title)}</div>
+          ${t.description ? `<div class="task-desc">${escHtml(t.description)}</div>` : ''}
+          <div class="task-meta">
+            <span class="badge badge-${t.priority}">${t.priority}</span>
+            <span class="task-date">${fmtDate(t.createdAt)}</span>
+          </div>
+        </div>
+        <div class="task-actions">
+          <button class="icon-btn edit" onclick="openEdit(${t.id}); event.stopPropagation()" title="Edit">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="icon-btn del" onclick="deleteTask(${t.id}); event.stopPropagation()" title="Delete">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function updateStats() {
+    const total = tasks.length;
+    const done  = tasks.filter(t => t.completed).length;
+    animCount('stat-total', total);
+    animCount('stat-done', done);
+    animCount('stat-pending', total - done);
+  }
+
+  function animCount(id, target) {
+    const el = document.getElementById(id);
+    let current = 0;
+    const step = Math.ceil(target / 20);
+    const timer = setInterval(() => {
+      current = Math.min(current + step, target);
+      el.textContent = current;
+      if (current >= target) clearInterval(timer);
+    }, 30);
+  }
+
+  // ─── UI HELPERS ────────────────────────────────────────────
+  function setFilter(f, btn) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderTasks();
+  }
+
+  function openEdit(id) {
+    const t = tasks.find(t => t.id === id);
+    document.getElementById('edit-id').value = id;
+    document.getElementById('edit-title').value = t.title;
+    document.getElementById('edit-desc').value = t.description || '';
+    document.getElementById('edit-priority').value = t.priority;
+    document.getElementById('edit-modal').classList.add('show');
+  }
+
+  function closeModal() {
+    document.getElementById('edit-modal').classList.remove('show');
+  }
+
+  document.getElementById('edit-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+    if (e.key === 'Enter' && document.activeElement.id === 'task-title') createTask();
+  });
+
+  function shakeInput(id) {
+    const el = document.getElementById(id);
+    el.style.animation = 'shake 0.4s cubic-bezier(.36,.07,.19,.97) both';
+    el.style.borderColor = 'var(--high)';
+    setTimeout(() => { el.style.animation = ''; el.style.borderColor = ''; }, 500);
+  }
+
+  function showToast(msg, type = 'success') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = msg;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.style.animation = 'toastOut 0.35s forwards';
+      setTimeout(() => toast.remove(), 350);
+    }, 2800);
+  }
+
+  function escHtml(s) {
+    return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  // Demo fallback data
+  function loadDemoTasks() {
+    tasks = [
+      { id: 1, title: 'Set up Spring Boot backend', description: 'Configure H2 database and REST endpoints', priority: 'HIGH', completed: true, createdAt: new Date().toISOString() },
+      { id: 2, title: 'Design animated frontend', description: 'HTML, CSS, JS with smooth animations', priority: 'HIGH', completed: false, createdAt: new Date().toISOString() },
+      { id: 3, title: 'Connect frontend to API', description: 'Fetch tasks and handle CRUD operations', priority: 'MEDIUM', completed: false, createdAt: new Date().toISOString() },
+      { id: 4, title: 'Write documentation', priority: 'LOW', completed: false, createdAt: new Date().toISOString() },
+    ];
+    renderTasks(); updateStats();
+  }
+
+  // Add shake keyframe
+  const style = document.createElement('style');
+  style.textContent = `@keyframes shake {
+    10%,90%{transform:translateX(-2px)} 20%,80%{transform:translateX(4px)}
+    30%,50%,70%{transform:translateX(-6px)} 40%,60%{transform:translateX(6px)}
+  }`;
+  document.head.appendChild(style);
+
+  // INIT
+  fetchTasks();
+</script>
+</body>
+</html>
